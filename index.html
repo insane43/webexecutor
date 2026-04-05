@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scythe Executor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <img src="scythe_logo.png" alt="Scythe Logo" style="width: 40px; height: 40px; object-fit: contain;">
+                </div>
+                <div class="brand-text">
+                    <h1>Scythe</h1>
+                    <span>Executor</span>
+                </div>
+            </div>
+            <div class="nav-status">
+                <div class="status-badge" id="statusBadge">
+                    <div class="status-indicator"></div>
+                    <span>Disconnected</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h2>Session Info</h2>
+                    <div class="info-card">
+                        <div class="avatar-container">
+                            <img id="avatarImage" src="" alt="Avatar" class="avatar-image" style="display: none;">
+                            <div id="avatarPlaceholder" class="avatar-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="fas fa-microchip"></i>
+                                Process ID
+                            </div>
+                            <div class="info-value" id="pidInfo">-</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="fas fa-gamepad"></i>
+                                Game
+                            </div>
+                            <div class="info-value" id="gameInfo">-</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="fas fa-user"></i>
+                                Player
+                            </div>
+                            <div class="info-value" id="playerInfo">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2>Actions</h2>
+                    <div class="action-grid">
+                        <button class="btn btn-success" id="executeBtn" disabled>
+                            <i class="fas fa-play"></i>
+                            Execute
+                        </button>
+                        <button class="btn btn-warning" id="clearBtn">
+                            <i class="fas fa-eraser"></i>
+                            Clear
+                        </button>
+                        <button class="btn btn-info" id="saveBtn">
+                            <i class="fas fa-save"></i>
+                            Save
+                        </button>
+                        <button class="btn btn-info" id="loadBtn">
+                            <i class="fas fa-folder-open"></i>
+                            Load
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="content">
+                <!-- Editor Section -->
+                <section class="editor-section">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="fas fa-code"></i>
+                            <span>Script Editor</span>
+                        </div>
+                        <div class="section-actions">
+                            <button class="action-btn" id="formatBtn" title="Format Code">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            <button class="action-btn" id="fullscreenBtn" title="Fullscreen">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="editor-container">
+                        <div class="editor-gutter">
+                            <div class="line-numbers" id="lineNumbers"></div>
+                        </div>
+                        <div class="editor-main">
+                            <textarea class="editor" id="scriptEditor" placeholder="-- Enter your Lua script here..." spellcheck="false"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Console Section -->
+                <section class="console-section">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="fas fa-terminal"></i>
+                            <span>Console</span>
+                        </div>
+                        <div class="section-actions">
+                            <button class="action-btn" id="clearConsoleBtn" title="Clear Console">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="console-container" id="outputConsole">
+                        <div class="console-entry info">
+                            <span class="console-time">[System]</span>
+                            <span class="console-message">Scythe Executor initialized successfully</span>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span class="status-item">
+                    <i class="fas fa-info-circle"></i>
+                    Scythe Executor v1.0
+                </span>
+            </div>
+            <div class="status-right">
+                <span class="status-item" id="executionStatus">
+                    <i class="fas fa-check-circle"></i>
+                    Ready
+                </span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-text" id="loadingText">Connecting...</div>
+        </div>
+    </div>
+
+    <script src="integration.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
