@@ -227,7 +227,7 @@
         <p>The page you're looking for doesn't exist or has been moved. Don't worry, even the best executors hit a wall sometimes.</p>
         
         <div class="button-group">
-            <a href="index.html" class="btn btn-primary">
+            <a href="index" class="btn btn-primary">
                 <i class="fas fa-home"></i>
                 Go to Executor
             </a>
@@ -262,5 +262,22 @@
             </ul>
         </div>
     </div>
+
+    <script>
+        // Apply saved theme on page load
+        (function() {
+            const savedSettings = localStorage.getItem('scytheSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.theme) {
+                        document.documentElement.setAttribute('data-theme', settings.theme);
+                    }
+                } catch (e) {
+                    console.error('Failed to load theme settings');
+                }
+            }
+        })();
+    </script>
 </body>
 </html>

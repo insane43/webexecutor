@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script Hub - Scythe Executor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="marketplace.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <img src="scythe_logo.png" alt="Scythe Logo" style="width: 40px; height: 40px; object-fit: contain;">
+                </div>
+                <div class="brand-text">
+                    <h1>Scythe</h1>
+                    <span>Script Hub</span>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <a href="index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Executor
+                </a>
+                <button class="btn btn-primary" id="uploadBtn">
+                    <i class="fas fa-upload"></i>
+                    Upload Script
+                </button>
+            </div>
+        </nav>
+
+        <div class="marketplace-container">
+            <aside class="marketplace-sidebar">
+                <div class="sidebar-section">
+                    <h2>Filters</h2>
+                    <div class="filter-group">
+                        <label>Search</label>
+                        <input type="text" id="searchInput" placeholder="Search scripts..." class="search-input">
+                    </div>
+                    <div class="filter-group">
+                        <label>Sort By</label>
+                        <select id="sortSelect" class="filter-select">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="popular">Most Popular</option>
+                            <option value="name">Name (A-Z)</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Category</label>
+                        <select id="categoryFilter" class="filter-select">
+                            <option value="all">All Categories</option>
+                            <option value="utility">Utility</option>
+                            <option value="game">Game Scripts</option>
+                            <option value="gui">GUI</option>
+                            <option value="exploit">Exploit</option>
+                            <option value="admin">Admin</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2>Statistics</h2>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalScripts">0</div>
+                        <div class="stat-label">Total Scripts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalDownloads">0</div>
+                        <div class="stat-label">Total Downloads</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2>🏆 Leaderboard</h2>
+                    <div class="leaderboard-tabs">
+                        <button class="leaderboard-tab active" data-type="downloads">Top Scripts</button>
+                        <button class="leaderboard-tab" data-type="contributors">Top Authors</button>
+                    </div>
+                    <div class="leaderboard-content" id="leaderboardContent">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="marketplace-content">
+                <div class="content-header">
+                    <h1>Script Hub</h1>
+                    <p>Browse and download scripts shared by the community</p>
+                </div>
+
+                <div class="scripts-grid" id="scriptsGrid">
+                    <div class="loading-state">
+                        <div class="loading-spinner">
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                        </div>
+                        <p>Loading scripts...</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upload Script</h2>
+                <button class="modal-close" id="closeUploadModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label for="scriptName">Script Name *</label>
+                        <input type="text" id="scriptName" required placeholder="Enter script name">
+                    </div>
+                    <div class="form-group">
+                        <label for="scriptAuthor">Author Name *</label>
+                        <input type="text" id="scriptAuthor" required placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="scriptCategory">Category *</label>
+                        <select id="scriptCategory" required>
+                            <option value="">Select a category</option>
+                            <option value="utility">Utility</option>
+                            <option value="game">Game Scripts</option>
+                            <option value="gui">GUI</option>
+                            <option value="exploit">Exploit</option>
+                            <option value="admin">Admin</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="scriptDescription">Description *</label>
+                        <textarea id="scriptDescription" required placeholder="Describe what your script does..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="scriptCode">Script Code *</label>
+                        <textarea id="scriptCode" required placeholder="-- Paste your Lua script here..." rows="10" class="code-input"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelUpload">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i>
+                            Upload Script
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="viewModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="viewScriptName">Script Name</h2>
+                <button class="modal-close" id="closeViewModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="script-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-user"></i>
+                        <span id="viewScriptAuthor">Author</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-tag"></i>
+                        <span id="viewScriptCategory">Category</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span id="viewScriptDate">Date</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-download"></i>
+                        <span id="viewScriptDownloads">0 downloads</span>
+                    </div>
+                </div>
+                <div class="script-description">
+                    <h3>Description</h3>
+                    <p id="viewScriptDescription">Description goes here</p>
+                </div>
+                <div class="script-rating-section">
+                    <h3>Rating</h3>
+                    <div class="rating-display">
+                        <div class="rating-stars" id="viewRatingStars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="rating-info">
+                            <span id="viewRatingAverage">0.0</span>
+                            <span class="rating-count">(<span id="viewRatingCount">0</span> ratings)</span>
+                        </div>
+                    </div>
+                    <div class="rating-input">
+                        <p>Rate this script:</p>
+                        <div class="rating-stars-input" id="ratingStarsInput">
+                            <i class="far fa-star" data-rating="1"></i>
+                            <i class="far fa-star" data-rating="2"></i>
+                            <i class="far fa-star" data-rating="3"></i>
+                            <i class="far fa-star" data-rating="4"></i>
+                            <i class="far fa-star" data-rating="5"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="script-code-container">
+                    <div class="code-header">
+                        <h3>Script Code</h3>
+                        <button class="btn btn-secondary btn-sm" id="copyCodeBtn">
+                            <i class="fas fa-copy"></i>
+                            Copy Code
+                        </button>
+                    </div>
+                    <pre><code id="viewScriptCode" class="code-display">-- Code goes here</code></pre>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="closeViewBtn">Close</button>
+                    <button class="btn btn-primary" id="loadToEditorBtn">
+                        <i class="fas fa-code"></i>
+                        Load to Editor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Apply saved theme on page load
+        (function() {
+            const savedSettings = localStorage.getItem('scytheSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.theme) {
+                        document.documentElement.setAttribute('data-theme', settings.theme);
+                    }
+                } catch (e) {
+                    console.error('Failed to load theme settings');
+                }
+            }
+        })();
+    </script>
+    <script type="module" src="marketplace.js"></script>
+</body>
+</html>

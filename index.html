@@ -22,6 +22,14 @@
                 </div>
             </div>
             <div class="nav-status">
+                <a href="scripthub" class="btn btn-secondary">
+                    <i class="fas fa-store"></i>
+                    Script Hub
+                </a>
+                <button class="btn btn-secondary" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </button>
                 <div class="status-badge" id="statusBadge">
                     <div class="status-indicator"></div>
                     <span>Disconnected</span>
@@ -98,21 +106,23 @@
                             <i class="fas fa-code"></i>
                             <span>Script Editor</span>
                         </div>
-                        <div class="section-actions">
-                            <button class="action-btn" id="formatBtn" title="Format Code">
-                                <i class="fas fa-magic"></i>
-                            </button>
-                            <button class="action-btn" id="fullscreenBtn" title="Fullscreen">
-                                <i class="fas fa-expand"></i>
-                            </button>
+                    </div>
+                    <div class="tabs-container">
+                        <div class="tabs-bar" id="tabsBar">
+                            <div class="tab active" data-tab-id="1">
+                                <span class="tab-name">Script 1</span>
+                                <button class="tab-close" title="Close tab">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
+                        <button class="new-tab-btn" id="newTabBtn" title="New tab">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <div class="editor-container">
-                        <div class="editor-gutter">
-                            <div class="line-numbers" id="lineNumbers"></div>
-                        </div>
-                        <div class="editor-main">
-                            <textarea class="editor" id="scriptEditor" placeholder="-- Enter your Lua script here..." spellcheck="false"></textarea>
+                        <div class="editor-main" style="width: 100%; height: 100%;">
+                            <div id="scriptEditor" style="width: 100%; height: 100%; min-height: 400px;"></div>
                         </div>
                     </div>
                 </section>
@@ -169,7 +179,143 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-modal-content">
+            <div class="settings-header">
+                <h2>Theme Settings</h2>
+                <button class="close-btn" id="closeSettings">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="settings-body-simple">
+                <div class="theme-selector">
+                    <div class="theme-option active" data-theme="dark">
+                        <div class="theme-preview dark-preview"></div>
+                        <span>Dark</span>
+                    </div>
+                    <div class="theme-option" data-theme="light">
+                        <div class="theme-preview light-preview"></div>
+                        <span>Light</span>
+                    </div>
+                    <div class="theme-option" data-theme="midnight">
+                        <div class="theme-preview midnight-preview"></div>
+                        <span>Midnight</span>
+                    </div>
+                    <div class="theme-option" data-theme="ocean">
+                        <div class="theme-preview ocean-preview"></div>
+                        <span>Ocean</span>
+                    </div>
+                    <div class="theme-option" data-theme="sunset">
+                        <div class="theme-preview sunset-preview"></div>
+                        <span>Sunset</span>
+                    </div>
+                    <div class="theme-option" data-theme="forest">
+                        <div class="theme-preview forest-preview"></div>
+                        <span>Forest</span>
+                    </div>
+                    <div class="theme-option" data-theme="purple">
+                        <div class="theme-preview purple-preview"></div>
+                        <span>Purple</span>
+                    </div>
+                    <div class="theme-option" data-theme="cyberpunk">
+                        <div class="theme-preview cyberpunk-preview"></div>
+                        <span>Cyberpunk</span>
+                    </div>
+                    <div class="theme-option" data-theme="monokai">
+                        <div class="theme-preview monokai-preview"></div>
+                        <span>Monokai</span>
+                    </div>
+                    <div class="theme-option" data-theme="nord">
+                        <div class="theme-preview nord-preview"></div>
+                        <span>Nord</span>
+                    </div>
+                    <div class="theme-option" data-theme="dracula">
+                        <div class="theme-preview dracula-preview"></div>
+                        <span>Dracula</span>
+                    </div>
+                    <div class="theme-option" data-theme="tokyo">
+                        <div class="theme-preview tokyo-preview"></div>
+                        <span>Tokyo Night</span>
+                    </div>
+                    <div class="theme-option" data-theme="gruvbox">
+                        <div class="theme-preview gruvbox-preview"></div>
+                        <span>Gruvbox</span>
+                    </div>
+                    <div class="theme-option" data-theme="solarized">
+                        <div class="theme-preview solarized-preview"></div>
+                        <span>Solarized</span>
+                    </div>
+                    <div class="theme-option" data-theme="cherry">
+                        <div class="theme-preview cherry-preview"></div>
+                        <span>Cherry</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Prompt Modal -->
+    <div class="custom-modal" id="customPromptModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h3 id="promptModalTitle">Input Required</h3>
+            </div>
+            <div class="custom-modal-body">
+                <p id="promptModalMessage">Please enter a value:</p>
+                <input type="text" id="promptModalInput" class="custom-modal-input" placeholder="Enter value...">
+            </div>
+            <div class="custom-modal-footer">
+                <button class="btn btn-secondary" id="promptModalCancel">Cancel</button>
+                <button class="btn btn-primary" id="promptModalConfirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div class="custom-modal" id="customConfirmModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h3 id="confirmModalTitle">Confirm Action</h3>
+            </div>
+            <div class="custom-modal-body">
+                <p id="confirmModalMessage">Are you sure?</p>
+            </div>
+            <div class="custom-modal-footer">
+                <button class="btn btn-secondary" id="confirmModalCancel">Cancel</button>
+                <button class="btn btn-primary" id="confirmModalConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Context Menu -->
+    <div class="context-menu" id="tabContextMenu">
+        <div class="context-menu-item" data-action="rename">
+            <i class="fas fa-edit"></i>
+            <span>Rename Tab</span>
+        </div>
+        <div class="context-menu-item" data-action="duplicate">
+            <i class="fas fa-copy"></i>
+            <span>Duplicate Tab</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="close">
+            <i class="fas fa-times"></i>
+            <span>Close Tab</span>
+        </div>
+        <div class="context-menu-item" data-action="closeOthers">
+            <i class="fas fa-times-circle"></i>
+            <span>Close Other Tabs</span>
+        </div>
+        <div class="context-menu-item" data-action="closeAll">
+            <i class="fas fa-trash"></i>
+            <span>Close All Tabs</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script src="integration.js"></script>
-    <script src="script.js"></script>
+    <script src="monaco-setup.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -6,11 +6,64 @@ class ScytheExecutor {
         this.healthCheckInterval = null;
         this.teleportCheckInterval = null;
         this.clientInfoInterval = null;
+        this.tabs = [];
+        this.activeTabId = 1;
+        this.nextTabId = 2;
+        this.contextMenuTabId = null;
+        this.settings = this.loadSettings();
         this.initializeElements();
         this.bindEvents();
+        this.initializeTabs();
+        this.initializeSettings();
+        this.applySettings();
         this.initializeEditor();
         this.initializeAPI();
         this.addPolish();
+    }
+
+    getDefaultSettings() {
+        return {
+            theme: 'dark',
+            uiScale: 100,
+            animationsEnabled: true,
+            blurEffects: true,
+            fontSize: 14,
+            tabSize: 4,
+            wordWrap: true,
+            lineNumbers: true,
+            minimap: false,
+            autoSave: true,
+            autoExecute: false,
+            clearConsoleOnExecute: false,
+            showExecutionTime: true,
+            soundEffects: true,
+            maxConsoleLines: 200,
+            apiEndpoint: 'ws://localhost:8080',
+            connectionTimeout: 5000,
+            autoReconnect: true,
+            healthCheck: true,
+            healthCheckInterval: 3000,
+            developerMode: false,
+            verboseLogging: false,
+            experimentalFeatures: false
+        };
+    }
+
+    loadSettings() {
+        const saved = localStorage.getItem('scytheSettings');
+        if (saved) {
+            try {
+                return { ...this.getDefaultSettings(), ...JSON.parse(saved) };
+            } catch (e) {
+                return this.getDefaultSettings();
+            }
+        }
+        return this.getDefaultSettings();
+    }
+
+    saveSettings() {
+        localStorage.setItem('scytheSettings', JSON.stringify(this.settings));
+        this.applySettings();
     }
 
     async initializeAPI() {
@@ -104,15 +157,32 @@ class ScytheExecutor {
     }
 
     bindEvents() {
+        // Settings
+        document.getElementById('settingsBtn').addEventListener('click', () => this.openSettings());
+        document.getElementById('closeSettings').addEventListener('click', () => this.closeSettings());
+        
+        // Tabs
+        document.getElementById('newTabBtn').addEventListener('click', () => this.createNewTab());
+        
+        // Prevent default context menu on tabs container
+        const tabsBar = document.getElementById('tabsBar');
+        if (tabsBar) {
+            tabsBar.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                return false;
+            });
+        }
+        
+        // Context menu
+        this.setupContextMenu();
+        
         // Actions
         this.executeBtn.addEventListener('click', () => this.executeScript());
         this.clearBtn.addEventListener('click', () => this.clearEditor());
         this.saveBtn.addEventListener('click', () => this.saveScript());
         this.loadBtn.addEventListener('click', () => this.loadScript());
 
-        // Editor
-        this.scriptEditor.addEventListener('input', () => this.updateLineNumbers());
-        this.scriptEditor.addEventListener('scroll', () => this.syncLineNumbers());
+        // Editor events handled by Monaco
 
         // Console
         this.clearConsoleBtn.addEventListener('click', () => this.clearConsole());
@@ -143,9 +213,399 @@ class ScytheExecutor {
         });
     }
 
+    initializeTabs() {
+        // Initialize first tab
+        this.tabs.push({
+            id: 1,
+            name: 'Script 1',
+            content: ''
+        });
+    }
+
+    createNewTab() {
+        const newTab = {
+            id: this.nextTabId,
+            name: `Script ${this.nextTabId}`,
+            content: '',
+            isNew: true
+        };
+        
+        this.tabs.push(newTab);
+        this.renderTabs();
+        this.switchTab(this.nextTabId);
+        this.nextTabId++;
+        
+        // Remove isNew flag after animation
+        setTimeout(() => {
+            newTab.isNew = false;
+        }, 300);
+    }
+
+    renderTabs() {
+        const tabsBar = document.getElementById('tabsBar');
+        tabsBar.innerHTML = this.tabs.map(tab => `
+            <div class="tab ${tab.id === this.activeTabId ? 'active' : ''} ${tab.isNew ? 'tab-new' : ''}" data-tab-id="${tab.id}">
+                <span class="tab-name">${tab.name}</span>
+                ${this.tabs.length > 1 ? `
+                    <button class="tab-close" data-tab-id="${tab.id}" title="Close tab">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : ''}
+            </div>
+        `).join('');
+        
+        // Bind tab events
+        document.querySelectorAll('.tab').forEach(tabEl => {
+            const tabId = parseInt(tabEl.getAttribute('data-tab-id'));
+            
+            // Prevent default context menu
+            tabEl.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showContextMenu(e, tabId);
+                return false;
+            };
+            
+            tabEl.addEventListener('click', (e) => {
+                if (!e.target.closest('.tab-close')) {
+                    this.switchTab(tabId);
+                }
+            });
+        });
+        
+        document.querySelectorAll('.tab-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tabId = parseInt(closeBtn.getAttribute('data-tab-id'));
+                this.closeTab(tabId);
+            });
+        });
+    }
+
+    switchTab(tabId) {
+        // Save current tab content
+        const currentTab = this.tabs.find(t => t.id === this.activeTabId);
+        if (currentTab && window.monacoEditorAPI) {
+            currentTab.content = window.monacoEditorAPI.getValue();
+        }
+        
+        // Switch to new tab
+        this.activeTabId = tabId;
+        const newTab = this.tabs.find(t => t.id === tabId);
+        
+        if (newTab && window.monacoEditorAPI) {
+            window.monacoEditorAPI.setValue(newTab.content);
+        }
+        
+        this.renderTabs();
+    }
+
+    closeTab(tabId) {
+        if (this.tabs.length === 1) {
+            this.log('Cannot close the last tab', 'warning');
+            return;
+        }
+        
+        const tabIndex = this.tabs.findIndex(t => t.id === tabId);
+        if (tabIndex === -1) return;
+        
+        this.tabs.splice(tabIndex, 1);
+        
+        // If closing active tab, switch to another
+        if (this.activeTabId === tabId) {
+            const newActiveTab = this.tabs[Math.max(0, tabIndex - 1)];
+            this.activeTabId = newActiveTab.id;
+            if (window.monacoEditorAPI) {
+                window.monacoEditorAPI.setValue(newActiveTab.content);
+            }
+        }
+        
+        this.renderTabs();
+    }
+
+    setupContextMenu() {
+        const contextMenu = document.getElementById('tabContextMenu');
+        
+        // Hide context menu on click outside
+        document.addEventListener('click', () => {
+            contextMenu.classList.remove('show');
+        });
+        
+        // Context menu actions
+        document.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = item.getAttribute('data-action');
+                this.handleContextMenuAction(action);
+                contextMenu.classList.remove('show');
+            });
+        });
+    }
+
+    showContextMenu(e, tabId) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        this.contextMenuTabId = tabId;
+        const contextMenu = document.getElementById('tabContextMenu');
+        
+        // Position the menu
+        contextMenu.style.left = e.pageX + 'px';
+        contextMenu.style.top = e.pageY + 'px';
+        
+        // Show the menu
+        contextMenu.classList.add('show');
+    }
+
+    handleContextMenuAction(action) {
+        switch(action) {
+            case 'rename':
+                this.renameTab(this.contextMenuTabId);
+                break;
+            case 'duplicate':
+                this.duplicateTab(this.contextMenuTabId);
+                break;
+            case 'close':
+                this.closeTab(this.contextMenuTabId);
+                break;
+            case 'closeOthers':
+                this.closeOtherTabs(this.contextMenuTabId);
+                break;
+            case 'closeAll':
+                this.closeAllTabs();
+                break;
+        }
+    }
+
+    async renameTab(tabId) {
+        const tab = this.tabs.find(t => t.id === tabId);
+        if (!tab) return;
+        
+        const newName = await this.showPrompt('Enter new tab name:', tab.name, 'Rename Tab');
+        if (newName && newName.trim()) {
+            tab.name = newName.trim();
+            this.renderTabs();
+        }
+    }
+
+    duplicateTab(tabId) {
+        const tab = this.tabs.find(t => t.id === tabId);
+        if (!tab) return;
+        
+        const newTab = {
+            id: this.nextTabId,
+            name: `${tab.name} (Copy)`,
+            content: tab.content,
+            isNew: true
+        };
+        
+        this.tabs.push(newTab);
+        this.renderTabs();
+        this.switchTab(this.nextTabId);
+        this.nextTabId++;
+        
+        setTimeout(() => {
+            newTab.isNew = false;
+        }, 300);
+    }
+
+    closeOtherTabs(keepTabId) {
+        if (this.tabs.length === 1) return;
+        
+        this.tabs = this.tabs.filter(t => t.id === keepTabId);
+        this.activeTabId = keepTabId;
+        
+        const keepTab = this.tabs[0];
+        if (window.monacoEditorAPI) {
+            window.monacoEditorAPI.setValue(keepTab.content);
+        }
+        
+        this.renderTabs();
+    }
+
+    closeAllTabs() {
+        this.tabs = [{
+            id: this.nextTabId,
+            name: `Script ${this.nextTabId}`,
+            content: ''
+        }];
+        
+        this.activeTabId = this.nextTabId;
+        this.nextTabId++;
+        
+        if (window.monacoEditorAPI) {
+            window.monacoEditorAPI.setValue('');
+        }
+        
+        this.renderTabs();
+    }
+
+    // Custom Modal Methods
+    showPrompt(message, defaultValue = '', title = 'Input Required') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('customPromptModal');
+            const input = document.getElementById('promptModalInput');
+            const messageEl = document.getElementById('promptModalMessage');
+            const titleEl = document.getElementById('promptModalTitle');
+            const confirmBtn = document.getElementById('promptModalConfirm');
+            const cancelBtn = document.getElementById('promptModalCancel');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            input.value = defaultValue;
+            
+            modal.classList.add('show');
+            setTimeout(() => input.focus(), 100);
+            
+            const handleConfirm = () => {
+                const value = input.value;
+                cleanup();
+                resolve(value);
+            };
+            
+            const handleCancel = () => {
+                cleanup();
+                resolve(null);
+            };
+            
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    handleConfirm();
+                } else if (e.key === 'Escape') {
+                    handleCancel();
+                }
+            };
+            
+            const cleanup = () => {
+                modal.classList.remove('show');
+                confirmBtn.removeEventListener('click', handleConfirm);
+                cancelBtn.removeEventListener('click', handleCancel);
+                input.removeEventListener('keypress', handleKeyPress);
+            };
+            
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+            input.addEventListener('keypress', handleKeyPress);
+        });
+    }
+
+    showConfirm(message, title = 'Confirm Action') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('customConfirmModal');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const titleEl = document.getElementById('confirmModalTitle');
+            const confirmBtn = document.getElementById('confirmModalConfirm');
+            const cancelBtn = document.getElementById('confirmModalCancel');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            modal.classList.add('show');
+            
+            const handleConfirm = () => {
+                cleanup();
+                resolve(true);
+            };
+            
+            const handleCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+            
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    handleConfirm();
+                } else if (e.key === 'Escape') {
+                    handleCancel();
+                }
+            };
+            
+            const cleanup = () => {
+                modal.classList.remove('show');
+                confirmBtn.removeEventListener('click', handleConfirm);
+                cancelBtn.removeEventListener('click', handleCancel);
+                document.removeEventListener('keypress', handleKeyPress);
+            };
+            
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+            document.addEventListener('keypress', handleKeyPress);
+        });
+    }
+
+    // Settings Methods
+    initializeSettings() {
+        // Theme selector
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const theme = option.getAttribute('data-theme');
+                this.settings.theme = theme;
+                this.saveSettings();
+                this.updateThemeUI();
+            });
+        });
+
+        // Load current theme
+        this.updateThemeUI();
+    }
+
+    updateThemeUI() {
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.classList.remove('active');
+            if (opt.getAttribute('data-theme') === this.settings.theme) {
+                opt.classList.add('active');
+            }
+        });
+    }
+
+    applySettings() {
+        // Apply theme
+        document.documentElement.setAttribute('data-theme', this.settings.theme);
+    }
+
+    openSettings() {
+        document.getElementById('settingsModal').classList.add('show');
+    }
+
+    closeSettings() {
+        document.getElementById('settingsModal').classList.remove('show');
+    }
+
     initializeEditor() {
-        this.updateLineNumbers();
+        // Wait for Monaco Editor to be ready
+        if (window.monacoEditorReady) {
+            this.setupMonacoEditor();
+            this.checkPendingScript();
+        } else {
+            window.addEventListener('monacoReady', () => {
+                this.setupMonacoEditor();
+                this.checkPendingScript();
+            });
+        }
         this.loadDefaultScript();
+    }
+
+    setupMonacoEditor() {
+        // Monaco Editor is now ready
+        this.log('Monaco Editor initialized with Lua syntax highlighting', 'success');
+    }
+
+    checkPendingScript() {
+        const pendingScript = localStorage.getItem('pendingScript');
+        if (pendingScript) {
+            // Wait a bit for Monaco to fully initialize
+            setTimeout(() => {
+                if (window.monacoEditorAPI) {
+                    window.monacoEditorAPI.setValue(pendingScript);
+                    this.log('Script loaded from Script Hub', 'success');
+                } else {
+                    this.scriptEditor.value = pendingScript;
+                    this.updateLineNumbers();
+                    this.log('Script loaded from Script Hub', 'success');
+                }
+                localStorage.removeItem('pendingScript');
+            }, 100);
+        }
     }
 
     async autoActivate() {
@@ -272,16 +732,11 @@ class ScytheExecutor {
     }
 
     updateLineNumbers() {
-        const lines = this.scriptEditor.value.split('\n').length;
-        let numbers = '';
-        for (let i = 1; i <= lines; i++) {
-            numbers += i + '\n';
-        }
-        this.lineNumbers.innerHTML = numbers.replace(/\n/g, '<br>');
+        // Line numbers handled by Monaco Editor
     }
 
     syncLineNumbers() {
-        this.lineNumbers.scrollTop = this.scriptEditor.scrollTop;
+        // Scroll sync handled by Monaco Editor
     }
 
     updateConnectionStatus(connected) {
@@ -301,7 +756,7 @@ class ScytheExecutor {
             return;
         }
 
-        const script = this.scriptEditor.value.trim();
+        const script = window.monacoEditorAPI ? window.monacoEditorAPI.getValue().trim() : this.scriptEditor.value.trim();
         if (!script) {
             this.log('No script to execute', 'warning');
             this.updateStatus('No script', 'warning');
@@ -339,8 +794,12 @@ class ScytheExecutor {
     }
 
     clearEditor() {
-        this.scriptEditor.value = '';
-        this.updateLineNumbers();
+        if (window.monacoEditorAPI) {
+            window.monacoEditorAPI.setValue('');
+        } else {
+            this.scriptEditor.value = '';
+            this.updateLineNumbers();
+        }
         this.log('Editor cleared', 'info');
         this.updateStatus('Ready', 'info');
     }
@@ -351,9 +810,9 @@ class ScytheExecutor {
     }
 
     async saveScript() {
-        const script = this.scriptEditor.value;
+        const script = window.monacoEditorAPI ? window.monacoEditorAPI.getValue() : this.scriptEditor.value;
         if (!script.trim()) {
-            this.log('Nothing to save', 'warning');
+            this.log('No script to save', 'warning');
             return;
         }
 
@@ -362,7 +821,7 @@ class ScytheExecutor {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `scythe_script_${Date.now()}.lua`;
+            a.download = `script_${Date.now()}.lua`;
             a.click();
             URL.revokeObjectURL(url);
             
@@ -380,14 +839,20 @@ class ScytheExecutor {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.lua,.txt';
-            input.onchange = async (e) => {
+            input.onchange = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const text = await file.text();
-                    this.scriptEditor.value = text;
-                    this.updateLineNumbers();
-                    this.log(`Loaded script: ${file.name}`, 'success');
-                    this.updateStatus('Script loaded', 'success');
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        if (window.monacoEditorAPI) {
+                            window.monacoEditorAPI.setValue(event.target.result);
+                        } else {
+                            this.scriptEditor.value = event.target.result;
+                            this.updateLineNumbers();
+                        }
+                        this.log(`Script loaded: ${file.name}`, 'success');
+                    };
+                    reader.readAsText(file);
                 }
             };
             input.click();
@@ -438,33 +903,12 @@ class ScytheExecutor {
     }
 
     loadDefaultScript() {
-        const defaultScript = `-- Scythe Executor - Premium Script
--- Professional Roblox Script Execution
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local StarterGui = game:GetService("StarterGui")
-
--- Create sophisticated notification
-local success = pcall(function()
-    StarterGui:SetCore("ChatMakeSystemMessage", {
-        Color = Color3.fromRGB(192, 192, 192);
-        Font = Enum.Font.SourceSansBold;
-        Text = "[Scythe] Premium Executor loaded successfully!";
-    })
-end)
-
-if success then
-    print("[Scythe] Script executed successfully!")
-else
-    warn("[Scythe] Notification system unavailable")
-end
-
--- Additional functionality can be added here
-print("[Scythe] Ready for execution")`;
-
-        this.scriptEditor.value = defaultScript;
-        this.updateLineNumbers();
+        if (window.monacoEditorAPI) {
+            window.monacoEditorAPI.setValue('');
+        } else {
+            this.scriptEditor.value = '';
+            this.updateLineNumbers();
+        }
     }
 
     startMonitoring() {
